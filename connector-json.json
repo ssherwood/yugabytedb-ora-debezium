@@ -1,0 +1,27 @@
+{
+    "name": "oracle-orders-db",
+    "config": {
+      "connector.class": "io.debezium.connector.oracle.OracleConnector",
+      "database.server.name": "orders-db0",
+      "database.hostname": "oracle-db",
+      "database.port": "1521",
+      "database.user": "c##dbzuser",
+      "database.password": "dbz",
+      "database.dbname": "ORCLCDB",
+      "database.pdb.name": "ORCLPDB1",
+      "database.schema": "DEBEZIUM",
+      "database.connection.adapter": "logminer",
+      "database.history.kafka.bootstrap.servers": "kafka0:9092",
+      "database.history.kafka.topic": "orders0-db-history",
+      "snapshot.mode": "initial",
+      "decimal.handling.mode": "string",
+      "key.converter": "io.apicurio.registry.utils.converter.ExtJsonConverter",
+      "key.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+      "key.converter.apicurio.registry.auto-register":"true",
+      "key.converter.apicurio.registry.find-latest":"true",
+      "value.converter": "io.apicurio.registry.utils.converter.ExtJsonConverter",
+      "value.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+      "value.converter.apicurio.registry.auto-register":"true",
+      "value.converter.apicurio.registry.find-latest":"true"
+    }
+  }

@@ -1,0 +1,29 @@
+{
+    "name": "oracle-db-hr",
+    "config": {
+      "connector.class": "io.debezium.connector.oracle.OracleConnector",
+      "database.hostname": "oracle-db",
+      "database.port": "1521",
+      "database.user": "c##dbzuser",
+      "database.password": "dbz",
+      "database.server.name": "local-oracle-db",
+      "database.history.kafka.topic": "hr-history",
+      "database.dbname": "ORCLCDB",
+      "database.connection.adapter": "LogMiner",
+      "database.history.kafka.bootstrap.servers": "kafka0:9092",
+      "table.include.list": "DEBEZIUM.JOB_HISTORY",
+      "database.schema": "DEBEZIUM",
+      "database.pdb.name": "ORCLPDB1",
+      "snapshot.mode": "schema_only",
+      "include.schema.changes": "true",
+      "schema.name.adjustment.mode": "avro",
+      "key.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+      "key.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+      "key.converter.apicurio.registry.auto-register": "true",
+      "key.converter.apicurio.registry.find-latest": "true",
+      "value.converter": "io.apicurio.registry.utils.converter.AvroConverter",
+      "value.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+      "value.converter.apicurio.registry.auto-register": "true",
+      "value.converter.apicurio.registry.find-latest": "true"
+    }
+  }

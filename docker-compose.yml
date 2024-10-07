@@ -92,8 +92,18 @@ services:
       - 1521:1521
     environment:
       ORACLE_PWD: tiger
+  
+  yugabytedb:
+    image: yugabytedb/yugabyte:2024.1.2.0-b77
+    ports: 
+      - "7000:7000"  # -p7001:7000 on Monteray
+      - "9000:9000"
+      - "15433:15433"
+      - "5433:5433"
+      - "9042:9042"
+    command: 'bin/yugabyted start --background=false --tserver_flags "yb_enable_read_committed_isolation=true"'
 
-# TODO
+# TODOs
 #
 # - add Oracle Container volumes so it doesn't take so long to do a full restart
 # -     volumes:
@@ -103,7 +113,6 @@ services:
 #  this should help with the full setup to get archive log enabled
 #
 # https://debezium.io/blog/2022/09/30/debezium-oracle-series-part-1/
-
 
 # another aid
 # https://royalihasan.medium.com/integrating-oracle-database-with-debezium-and-kafka-connect-for-cdc-change-data-capture-f44d758e7f69

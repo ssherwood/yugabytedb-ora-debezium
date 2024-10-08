@@ -144,3 +144,6 @@ INSERT INTO order_item (order_id, line_item_id, product_id, unit_price, quantity
 INSERT INTO order_item (order_id, line_item_id, product_id, unit_price, quantity) VALUES (9, 2, 18, 299.99, 2);
 INSERT INTO order_item (order_id, line_item_id, product_id, unit_price, quantity) VALUES (10, 1, 19, 129.99, 1);
 INSERT INTO order_item (order_id, line_item_id, product_id, unit_price, quantity) VALUES (10, 2, 20, 149.99, 1);
+
+quit;
+/

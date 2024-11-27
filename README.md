@@ -108,10 +108,14 @@ For additional configuration options, review the [Oracle Connector Properties](h
 
 ## Deploy the YugabyteDB Sink
 
+```bash
+http POST :8083/connectors @./connectors/sink-yugabytedb-pg.json
+```
 
-TODO
-configure c3p0
-Initializing c3p0 pool... com.mchange.v2.c3p0.PoolBackedDataSource@b40b33bf [ connectionPoolDataSource -> com.mchange.v2.c3p0.WrapperConnectionPoolDataSource@e440e407 [ acquireIncrement -> 32, acquireRetryAttempts -> 30, acquireRetryDelay -> 1000, autoCommitOnClose -> false, automaticTestTable -> null, breakAfterAcquireFailure -> false, checkoutTimeout -> 0, connectionCustomizerClassName -> null, connectionTesterClassName -> com.mchange.v2.c3p0.impl.DefaultConnectionTester, contextClassLoaderSource -> caller, debugUnreturnedConnectionStackTraces -> false, factoryClassLocation -> null, forceIgnoreUnresolvedTransactions -> false, forceSynchronousCheckins -> false, identityToken -> 1bqrg1yb6170lqlibdyz1a|797d98ea, idleConnectionTestPeriod -> 0, initialPoolSize -> 5, maxAdministrativeTaskTime -> 0, maxConnectionAge -> 0, maxIdleTime -> 0, maxIdleTimeExcessConnections -> 0, maxPoolSize -> 32, maxStatements -> 0, maxStatementsPerConnection -> 0, minPoolSize -> 5, nestedDataSource -> com.mchange.v2.c3p0.DriverManagerDataSource@955765c4 [ description -> null, driverClass -> null, factoryClassLocation -> null, forceUseNamedDriverClass -> false, identityToken -> 1bqrg1yb6170lqlibdyz1a|504b69ab, jdbcUrl -> jdbc:postgresql://yugabytedb:5433/yugabyte, properties -> {password=******, user=******} ], preferredTestQuery -> null, privilegeSpawnedThreads -> false, propertyCycle -> 0, statementCacheNumDeferredCloseThreads -> 0, testConnectionOnCheckin -> false, testConnectionOnCheckout -> false, unreturnedConnectionTimeout -> 0, usesTraditionalReflectiveProxies -> false; userOverrides: {} ], dataSourceName -> null, extensions -> {}, factoryClassLocation -> null, identityToken -> 1bqrg1yb6170lqlibdyz1a|4efdbd67, numHelperThreads -> 3 ]   [com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource]
+Configuration values of note:
 
-curl -O https://repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-jaxb-annotations/2.13.4/jackson-module-jaxb-annotations-2.13.4.jar
-curl -O https://repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-scala_3/2.13.4/jackson-module-scala_3-2.13.4.jar
+- `"connection.url": "jdbc:postgresql://yugabytedb:5433/yugabyte?stringtype=unspecified"`
+   Specifically, `stringtype=unspecified` was needed to handle the decimal conversion done on the
+   Oracle side as it makes the NUMERIC types come across as a String in the schema.
+
+- 

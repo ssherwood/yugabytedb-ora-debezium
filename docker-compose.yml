@@ -1,79 +1,116 @@
-version: '3.8'
-
-#
-# TODO upgrade to 2.7.3.Final
 #
 services:
   zookeeper0:
-    image: debezium/zookeeper:2.7
+    image: quay.io/debezium/zookeeper:3.0.3.Final
     ports:
       - 2181:2181
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: /zookeeper/bin/zkServer.sh print-cmd || exit 1
+      start_period: 8s
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
   kafka0:
-    image: debezium/kafka:2.7
+    image: quay.io/debezium/kafka:3.0.3.Final
     depends_on:
-      - zookeeper0
+      zookeeper0:
+        condition: service_healthy
     ports:
       - 9092:9092
-    restart: unless-stopped
+      - 9997:9997
     environment:
       BROKER_ID: 100
       ZOOKEEPER_CONNECT: zookeeper0:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka0:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       JMX_PORT: 9997
       KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=kafka0 -Dcom.sun.management.jmxremote.rmi.port=9997
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      #KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    healthcheck:
+      test: unset JMX_PORT; /kafka/bin/kafka-topics.sh --list --bootstrap-server kafka0:9092 || exit 1
+      start_period: 15s
+      interval: 15s
+      timeout: 10s
+      retries: 3
   
   # https://debezium.io/documentation/reference/stable/configuration/avro.html#apicurio-registry
   schemaregistry0:
     image: apicurio/apicurio-registry-kafkasql:latest-release
     depends_on:
-      - kafka0
+      kafka0:
+        condition: service_healthy
     ports:
       - 8085:8080
-    restart: unless-stopped
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka0:9092
       REGISTRY_KAFKASQL_CONSUMER_GROUP_ID: apicurio-registry-local
+    healthcheck:
+      test: curl --fail --silent --insecure http://localhost:8080/apis/ccompat/v7/subjects --output /dev/null || exit 1
+      start_period: 15s
+      interval: 10s
+      timeout: 10s
+      retries: 3
 
-  kafka-connect0:
-    image: quay.io/yugabyte/debezium-connector:1.9.5.y.220.2
+  debezium0:
+    #image: quay.io/yugabyte/debezium-connector:1.9.5.y.220.2
+    image: quay.io/debezium/connect:3.0.3.Final
     depends_on:
-      - schemaregistry0
+      kafka0:
+        condition: service_healthy
     ports:
       - 8083:8083
-    restart: unless-stopped
     environment:
       BOOTSTRAP_SERVERS: kafka0:9092
-      GROUP_ID: kafka-connect0-group
-      CONFIG_STORAGE_TOPIC: kafka-connect0_configs
+      GROUP_ID: kafka-debezium0-group
+      CONFIG_STORAGE_TOPIC: kafka-debezium0_configs
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      OFFSET_STORAGE_TOPIC: kafka-connect0_offset
+      OFFSET_STORAGE_TOPIC: kafka-debezium0_offset
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      STATUS_STORAGE_TOPIC: kafka-connect0_status
+      STATUS_STORAGE_TOPIC: kafka-debezium0_status
       STATUS_STORAGE_REPLICATION_FACTOR: 1
-      REST_ADVERTISED_HOST_NAME: kafka-connect0
+      REST_ADVERTISED_HOST_NAME: debezium0
       CONNECT_REST_PORT: 8083
       CONNECT_SCHEMA_NAME_ADJUSTMENT_MODE: avro
       ENABLE_APICURIO_CONVERTERS: true
+      ENABLE_DEBEZIUM_SCRIPTING: true
+    healthcheck:
+      test: curl --fail --silent --insecure http://localhost:8083/connectors --output /dev/null || exit 1
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
+  # https://github.com/provectus/kafka-ui
+  # https://docs.kafka-ui.provectus.io/configuration/configuration-file
+  # https://docs.kafka-ui.provectus.io/configuration/misc-configuration-properties
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     depends_on:
-      - schemaregistry0
+      debezium0:
+        condition: service_healthy
+      schemaregistry0:
+        condition: service_healthy
     ports:
-      - 8180:8080
+      - 8180:8080 # try not to collide with commonly used 8080
     environment:
       KAFKA_CLUSTERS_0_NAME: debezium-local
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper0:2181
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka0:9092
       KAFKA_CLUSTERS_0_METRICS_PORT: 9997
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schemaregistry0:8080/apis/ccompat/v7
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: kafka-connect0
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://kafka-connect0:8083
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: debezium0
+      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://debezium0:8083
+    healthcheck:
+      test: wget -nv -t1 --spider 'http://kafka-ui:8080/actuator/health' || exit 1
+      start_period: 20s
+      interval: 20s
+      timeout: 15s
+      retries: 3
 
   #
   # https://dev.to/docker/how-to-run-oracle-database-in-a-docker-container-using-docker-compose-1c9b
@@ -85,10 +122,13 @@ services:
     ports:
       - 1521:1521
     environment:
-      ORACLE_PWD: tiger
-  
+      ORACLE_PWD: Tiger123
+
+  #
+  #
+  #  
   yugabytedb:
-    image: yugabytedb/yugabyte:2024.1.2.0-b77
+    image: yugabytedb/yugabyte:2024.1.3.1-b8
     ports: 
       - "7000:7000"   # YB Master (7001:7000 on Monteray)
       - "9000:9000"   # YB TServer
@@ -98,10 +138,14 @@ services:
     command: >
       bash -c 'rm -rf /tmp/.yb.* ;
       yugabyted start --background=false --tserver_flags=yb_enable_read_committed_isolation=true'
-
+    healthcheck:
+      test: ysqlsh -h yugabytedb -c 'SELECT 1'
+      start_period: 30s
+      interval: 20s
+      timeout: 15s
+      retries: 3
+      
 # TODOs
-#
-# - add Health Checks to containers
 #
 # - add Oracle Container volumes so it doesn't take so long to do a full restart
 #     volumes:

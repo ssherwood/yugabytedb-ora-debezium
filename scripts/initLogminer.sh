@@ -5,7 +5,7 @@ mkdir -p /opt/oracle/oradata/recovery_area
 
 export ORACLE_SID=ORCLCDB
 sqlplus /nolog <<- EOF
-	connect sys/tiger as sysdba
+	connect sys/Tiger123 as sysdba
 	alter system set db_recovery_file_dest_size = 100G;
 	alter system set db_recovery_file_dest = '/opt/oracle/oradata/recovery_area' scope=spfile;
 	exit;
@@ -25,26 +25,26 @@ sqlplus / as sysdba <<- EOF
 EOF
 
 # enable logminer database features/settings
-sqlplus sys/tiger@//localhost:1521/ORCLCDB as sysdba <<- EOF
+sqlplus sys/Tiger123@//localhost:1521/ORCLCDB as sysdba <<- EOF
   alter database add supplemental log data;
   alter profile default limit failed_login_attempts unlimited;
   exit;
 EOF
 
 # create logminer tablespace for cdb
-sqlplus sys/tiger@//localhost:1521/ORCLCDB as sysdba <<- EOF
+sqlplus sys/Tiger123@//localhost:1521/ORCLCDB as sysdba <<- EOF
   CREATE TABLESPACE LOGMINER_TBS DATAFILE '/opt/oracle/oradata/ORCLCDB/logminer_tbs.dbf' SIZE 250M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;
   exit;
 EOF
 
 # create logminer tablespace for pdb1
-sqlplus sys/tiger@//localhost:1521/ORCLPDB1 as sysdba <<- EOF
+sqlplus sys/Tiger123@//localhost:1521/ORCLPDB1 as sysdba <<- EOF
   CREATE TABLESPACE LOGMINER_TBS DATAFILE '/opt/oracle/oradata/ORCLCDB/ORCLPDB1/logminer_tbs.dbf' SIZE 250M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;
   exit;
 EOF
 
 # create the debezium role for required access to logminer
-sqlplus sys/tiger@//localhost:1521/ORCLCDB as sysdba <<- EOF
+sqlplus sys/Tiger123@//localhost:1521/ORCLCDB as sysdba <<- EOF
   CREATE USER c##dbzuser IDENTIFIED BY dbz DEFAULT TABLESPACE LOGMINER_TBS QUOTA UNLIMITED ON LOGMINER_TBS CONTAINER=ALL;
 
   GRANT CREATE SESSION TO c##dbzuser CONTAINER=ALL;
@@ -75,7 +75,7 @@ EOF
 
 # create the debezium user and permissions
 
-sqlplus sys/tiger@//localhost:1521/ORCLPDB1 as sysdba <<- EOF
+sqlplus sys/Tiger123@//localhost:1521/ORCLPDB1 as sysdba <<- EOF
   CREATE USER debezium IDENTIFIED BY dbz;
   GRANT CONNECT TO debezium;
   GRANT CREATE SESSION TO debezium;

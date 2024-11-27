@@ -15,6 +15,6 @@ docker compose exec -it oracle-db sqlplus debezium/dbz@//localhost:1521/orclpdb1
 docker compose cp scripts/initSqlYB.sql yugabytedb:/tmp
 docker compose exec -it yugabytedb bash -c '/home/yugabyte/bin/ysqlsh -h $(hostname) -f /tmp/initSqlYB.sql'
 
-docker compose cp scripts/initKafkaConnect.sh kafka-connect0:/tmp
-docker compose exec kafka-connect0 /tmp/initKafkaConnect.sh
-docker compose restart kafka-connect0
+docker compose cp scripts/initKafkaConnect.sh debezium0:/tmp
+docker compose exec debezium0 /tmp/initKafkaConnect.sh
+docker compose restart debezium0

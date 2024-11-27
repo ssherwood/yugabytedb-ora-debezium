@@ -1,19 +1,22 @@
-# From Oracle to YugabyteDB with Debezium and Apicurio
+# Migrating Data from Oracle to YugabyteDB with Debezium and Apicurio
 
 ## Overview
 
-This working project demonstrates a Debezium setup for streaming data between
-Oracle and YugabyteDB. Apicurio is also used as a schema registry to aid schema
-managment between the producer and the sinks.
+This project demonstrates using [Debezium](https://debezium.io/) to stream data
+between Oracle and [YugabyteDB](https://www.yugabyte.com/). [Apicurio Registry](https://www.apicur.io/registry/)
+is used as the schema registry to aid schema managment between the Producer and
+the Sink(s).
 
-## Pull the Oracle Container
+## Get the Oracle Container
 
-Unlike most containers, it is not possible to just download the Oracle
-database. Oracle self hosts their own [registry](https://container-registry.oracle.com).
-To be able to `pull` from the registry, create an account there and sign in.
-Each container may require a license aggreement - click Database Repositories
-and accept the terms for the "enterprise" repository (using the Continue
-button). Once accpepted, log to the Oracle Registry with the Docker CLI:
+Unlike most other Docker containers, it is not possible to just download the
+Oracle database. Oracle hosts their own [container registry](https://container-registry.oracle.com).
+To `pull` from this registry, you will have to create an account.
+
+Additionally, each container may require a separate license aggreement - click
+"Database Repositories" and accept the terms for the "enterprise" repository
+(using the Continue button). Once accpepted, log to the Oracle Registry with
+the Docker CLI:
 
 ```bash
 docker login -u <your account> container-registry.oracle.com
@@ -34,15 +37,15 @@ docker compose up -d
 ```
 
 ```shell
-[+] Running 7/7
- ⠿ Network apicurio_default              Created                                               0.2s
- ⠿ Container apicurio-zookeeper0-1       Started                                               0.7s
- ⠿ Container apicurio-oracle-db-1        Started                                               0.6s
- ⠿ Container apicurio-kafka0-1           Started                                               0.9s
- ⠿ Container apicurio-schemaregistry0-1  Started                                               1.2s
- ⠿ Container apicurio-kafka-ui-1         Started                                               1.5s
- ⠿ Container apicurio-kafka-connect0-1   Started                                               1.6s
- TODO add missing YB container output
+[+] Running 8/8
+ ⠿ Network apicurio_default              Created                        0.2s
+ ⠿ Container apicurio-zookeeper0-1       Healthy                        6.3s
+ ⠿ Container apicurio-oracle-db-1        Started                        0.8s
+ ⠿ Container apicurio-yugabytedb-1       Started                        0.9s
+ ⠿ Container apicurio-kafka0-1           Healthy                        13.0s
+ ⠿ Container apicurio-schemaregistry0-1  Healthy                        18.8s
+ ⠿ Container apicurio-debezium0-1        Healthy                        29.6s
+ ⠿ Container apicurio-kafka-ui-1         Started                        30.2s
 ```
 
 Confirm that the containers start up and monitor the logs:
@@ -79,19 +82,36 @@ apicurio-oracle-db-1        | DATABASE IS READY TO USE!
 apicurio-oracle-db-1        | #########################
 ```
 
-Also, the container is not automatically configured with `logminer` or a vaid
-user account for Debezium. The provided initialization scripts will run the
-appropriate configuation for Oracle, Debezium and initialize the default
+Unfortunately, the container is not automatically configured with `logminer` or
+a vaid user account for Debezium. The provided initialization scripts will run
+the appropriate configuation for Oracle, Debezium and initialize the default
 schema(s) and data to start the demonstration.
 
 ```bash
 ./init.sh
 ```
 
-TODO
+This script should do everything to configure the target and source database
+with the demo schemas (and data for the Oracle source). The Debezium container
+will also be configured with the require Oracle libraries and restarted.
+
+## Deploy the Oracle Connector
 
 ```bash
-http POST :8083/connectors @connector-json.json
+http POST :8083/connectors @./connectors/connector-ora-json.json
 ```
 
-* [Oracle Connector Properties](https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-connector-properties)
+This version of the connector is specifically configured to use Apicurio's Json
+Converters.
+
+For additional configuration options, review the [Oracle Connector Properties](https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-connector-properties).
+
+## Deploy the YugabyteDB Sink
+
+
+TODO
+configure c3p0
+Initializing c3p0 pool... com.mchange.v2.c3p0.PoolBackedDataSource@b40b33bf [ connectionPoolDataSource -> com.mchange.v2.c3p0.WrapperConnectionPoolDataSource@e440e407 [ acquireIncrement -> 32, acquireRetryAttempts -> 30, acquireRetryDelay -> 1000, autoCommitOnClose -> false, automaticTestTable -> null, breakAfterAcquireFailure -> false, checkoutTimeout -> 0, connectionCustomizerClassName -> null, connectionTesterClassName -> com.mchange.v2.c3p0.impl.DefaultConnectionTester, contextClassLoaderSource -> caller, debugUnreturnedConnectionStackTraces -> false, factoryClassLocation -> null, forceIgnoreUnresolvedTransactions -> false, forceSynchronousCheckins -> false, identityToken -> 1bqrg1yb6170lqlibdyz1a|797d98ea, idleConnectionTestPeriod -> 0, initialPoolSize -> 5, maxAdministrativeTaskTime -> 0, maxConnectionAge -> 0, maxIdleTime -> 0, maxIdleTimeExcessConnections -> 0, maxPoolSize -> 32, maxStatements -> 0, maxStatementsPerConnection -> 0, minPoolSize -> 5, nestedDataSource -> com.mchange.v2.c3p0.DriverManagerDataSource@955765c4 [ description -> null, driverClass -> null, factoryClassLocation -> null, forceUseNamedDriverClass -> false, identityToken -> 1bqrg1yb6170lqlibdyz1a|504b69ab, jdbcUrl -> jdbc:postgresql://yugabytedb:5433/yugabyte, properties -> {password=******, user=******} ], preferredTestQuery -> null, privilegeSpawnedThreads -> false, propertyCycle -> 0, statementCacheNumDeferredCloseThreads -> 0, testConnectionOnCheckin -> false, testConnectionOnCheckout -> false, unreturnedConnectionTimeout -> 0, usesTraditionalReflectiveProxies -> false; userOverrides: {} ], dataSourceName -> null, extensions -> {}, factoryClassLocation -> null, identityToken -> 1bqrg1yb6170lqlibdyz1a|4efdbd67, numHelperThreads -> 3 ]   [com.mchange.v2.c3p0.impl.AbstractPoolBackedDataSource]
+
+curl -O https://repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-jaxb-annotations/2.13.4/jackson-module-jaxb-annotations-2.13.4.jar
+curl -O https://repo1.maven.org/maven2/com/fasterxml/jackson/module/jackson-module-scala_3/2.13.4/jackson-module-scala_3-2.13.4.jar

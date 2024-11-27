@@ -1,0 +1,26 @@
+{
+    "name": "jdbc-connector-yugabytedb13",
+    "config": {
+        "tasks.max": "1",
+        "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",
+        "connection.url": "jdbc:postgresql://yugabytedb:5433/yugabyte?stringtype=unspecified",
+        "hibernate.connection.driver_class": "org.postgresql.Driver",
+        "connection.username": "yugabyte",
+        "connection.password": "yugabyte",
+        "schema.evolution": "none",
+        "insert.mode": "upsert", 
+        "delete.enabled": "true",
+        "primary.key.mode": "record_key",
+        "use.time.zone": "UTC",
+        "topics": "ora_pdb1_debezium.DEBEZIUM.CUSTOMER",
+        "collection.name.format": "public.${source.table}",
+        "key.converter": "io.apicurio.registry.utils.converter.ExtJsonConverter",
+        "key.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+        "key.converter.apicurio.registry.auto-register":"true",
+        "key.converter.apicurio.registry.find-latest":"true",
+        "value.converter": "io.apicurio.registry.utils.converter.ExtJsonConverter",
+        "value.converter.apicurio.registry.url": "http://schemaregistry0:8080/apis/registry/v2",
+        "value.converter.apicurio.registry.auto-register":"true",
+        "value.converter.apicurio.registry.find-latest":"true"
+    }
+}

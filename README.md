@@ -101,21 +101,85 @@ will also be configured with the require Oracle libraries and restarted.
 http POST :8083/connectors @./connectors/connector-ora-json.json
 ```
 
-This version of the connector is specifically configured to use Apicurio's Json
-Converters.
+This will activate the Oracle Debezium connector using LogMiner. It may take a
+few minutes to fully activate and reflect with topics, connectors and data.
+
+This connector is configured to use Apicurio's Json Converters and it's schema
+registry implementation. With this pattern in place the messages published do
+not contain the redundant schema information:
+
+```json
+{
+	"schemaId": 4,
+	"payload": {
+		"before": null,
+		"after": {
+			"CUSTOMER_ID": "1",
+			"DATE_OF_BIRTH": 474595200000,
+			"FULL_NAME": "John Doe",
+			"EMAIL": "john.doe@example.com",
+			"CREATED_AT": 1733327361556671,
+			"UPDATED_AT": 1733327361556671
+		},
+		"source": {
+			"version": "3.0.3.Final",
+			"connector": "oracle",
+			"name": "ora_pdb1_debezium",
+			"ts_ms": 1733328188000,
+			"snapshot": "first",
+			"db": "ORCLPDB1",
+			"sequence": null,
+			"ts_us": 1733328188000000,
+			"ts_ns": 1733328188000000000,
+			"schema": "DEBEZIUM",
+			"table": "CUSTOMER",
+			"txId": null,
+			"scn": "2667232",
+			"commit_scn": null,
+			"lcr_position": null,
+			"rs_id": null,
+			"ssn": 0,
+			"redo_thread": null,
+			"user_name": null,
+			"redo_sql": null,
+			"row_id": null
+		},
+		"transaction": null,
+		"op": "r",
+		"ts_ms": 1733328193972,
+		"ts_us": 1733328193972097,
+		"ts_ns": 1733328193972097678
+	}
+}
+```
+
+A configuration of note is `decimal.handling.mode` of `string`. The default
+behavior will encode the Oracle NUMERIC type and it is not very "human
+readable". This configuration may not be desired for all use cases, but it aids
+in visualizing the results during local testing.
 
 For additional configuration options, review the [Oracle Connector Properties](https://debezium.io/documentation/reference/stable/connectors/oracle.html#oracle-connector-properties).
 
 ## Deploy the YugabyteDB Sink
 
+Finally, deploy the YugabyteDB sink (the vanilla Debezium JDBC sink). This
+connector will consume the topic `ora_pdb1_debezium.DEBEZIUM.CUSTOMER` and
+write to the `public.${source.table}` (customer) table.
+
+Ultimately the choice for which topics to consume and how to map them to their
+underlying tables is up to the implementation as the choices can limit the
+potential to scale out.
+
 ```bash
-http POST :8083/connectors @./connectors/sink-yugabytedb-pg.json
+http POST :8083/connectors @./connectors/sink-ybdb-json.json
 ```
 
 Configuration values of note:
 
-- `"connection.url": "jdbc:postgresql://yugabytedb:5433/yugabyte?stringtype=unspecified"`
-   Specifically, `stringtype=unspecified` was needed to handle the decimal conversion done on the
-   Oracle side as it makes the NUMERIC types come across as a String in the schema.
+- `connection.url` - specifically, `stringtype=unspecified` was needed to handle the decimal conversion done on the Oracle side as it makes the NUMERIC types come across as a string in the schema.
 
+## TODOs
+
+- Investigate DATE/TIME mappings as they are currently being consumed as numbers
+- Add "Avaro" serization support and compare the differences
 - 
